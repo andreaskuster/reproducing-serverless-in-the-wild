@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# encoding: utf-8
+
 import os
 import sys
 import tarfile
@@ -25,13 +28,13 @@ class Dataset:
 
         # data containers
         self.app_memory = pd.DataFrame()
-        self.app_duration = None
-        self.app_invocation = None
+        self.app_duration = pd.DataFrame()
+        self.app_invocation = pd.DataFrame()
 
     def data_import(self, day_index=range(12)):
-        if not os.path.exists(self.file_name):
+        if not os.path.exists(os.path.join(self.path, self.file_name)):
             self.fetch_data()
-        if not os.path.exists(self.data_path):
+        if not os.path.exists(os.path.join(self.path, self.data_path)):
             self.extract_data()
         self.parse_data(day_index)
 
@@ -54,59 +57,60 @@ class Dataset:
         #  suboptimal. Loading dataset for single days reduces the memory consumption to ~1.2GB
         for i in range(12):  # we omit 13, 14 as we have no data for app_memory
             if i in day_index:
+                # index -> day
                 day = i + 1
-                df = pd.read_csv(os.path.join(self.data_path, f'app_memory_percentiles.anon.d{day:02d}.csv'))
-                df["day"] = day
-                #
-                # if self.app_memory is None:
-                #     self.app_memory = df
-                # else:
-                # pd.add(self.app_memory, df)
-                # self.app_memory.add(df, fill_value=0)
-                pd.concat([self.app_memory, df], axis=0)
-            #     self.app_duration.append(pd.read_csv(os.path.join(self.data_path, f'function_durations_percentiles.anon.d{i + 1:02d}.csv')))
-            #     self.app_invocation.append(pd.read_csv(os.path.join(self.data_path, f'invocations_per_function_md.anon.d{i + 1:02d}.csv')))
-            # else:
-            #     # add placeholder for index == day
-            #     self.app_memory.append(None)
-            #     self.app_duration.append(None)
-            #     self.app_invocation.append(None)
+
+                # import new data from .csv file
+                df_memory = pd.read_csv(os.path.join(self.data_path, f'app_memory_percentiles.anon.d{day:02d}.csv'))
+                df_duration = pd.read_csv(
+                    os.path.join(self.data_path, f'function_durations_percentiles.anon.d{i + 1:02d}.csv'))
+                df_invocation = pd.read_csv(
+                    os.path.join(self.data_path, f'invocations_per_function_md.anon.d{i + 1:02d}.csv'))
+
+                # add day column
+                df_memory["day"] = day
+                df_duration["day"] = day
+                df_invocation["day"] = day
+
+                # concatenate with existing data
+                self.app_memory = pd.concat([self.app_memory, df_memory], axis=0)
+                self.app_duration = pd.concat([self.app_duration, df_duration], axis=0)
+                self.app_invocation = pd.concat([self.app_invocation, df_invocation], axis=0)
+
+    def get_function_invocations(self, day, time):
+        # day [1..12], time e [1, .., 1440]
+        df = self.app_invocation[self.app_invocation["day"] == day].get(key=["HashFunction", str(time)])
+        df["Mem"] = 10 # TODO: get actual mem
+        return df
+
+    def data_analysis(self):
+
+        """"
+        TODO (Andreas): produce nice plots about input data:
+            - histograms
+            - changes between days
+            - changes within a day
+
+            - changes per Owner/App/Function
+            including var/mean/..
+        """
 
 
-    def get_app_data(self):
+        df = self.app_invocation
 
-        df = self.app_invocation #.head(n=1000)
-
-        # self.app_invocation[0].head().hist(column=[str(i+1) for i in range(10)]) # 1440
-        # df.plot(kind='hist')
-
-        # remove non-numbers
-
-        column_list = list(df)
-
+        column_list = [str(x+1) for x in range(1440)]
         print(column_list)
 
-        column_list.remove("HashOwner")
-        column_list.remove("HashApp")
-        column_list.remove("HashFunction")
-        column_list.remove("Trigger")
 
         df["sum"] = df[column_list].sum(axis=1)
 
-        df.hist(column='sum', bins=10)
+        df.hist(column='sum')
 
         plt.show()
 
 
-
-
-
-
 if __name__ == "__main__":
-
     dataset = Dataset()
     dataset.data_import(day_index=[0, 1])  # only load day zero (possible values: subset of [0, .., 11])
-
-    dataset.get_app_data()
-
+    dataset.data_analysis()
     sys.exit(0)
