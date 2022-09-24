@@ -24,9 +24,9 @@ class Dataset:
         self.data_path = os.path.join(self.path, "data")
 
         # data containers
-        self.app_memory = list()
-        self.app_duration = list()
-        self.app_invocation = list()
+        self.app_memory = pd.DataFrame()
+        self.app_duration = None
+        self.app_invocation = None
 
     def data_import(self, day_index=range(12)):
         if not os.path.exists(self.file_name):
@@ -54,22 +54,28 @@ class Dataset:
         #  suboptimal. Loading dataset for single days reduces the memory consumption to ~1.2GB
         for i in range(12):  # we omit 13, 14 as we have no data for app_memory
             if i in day_index:
-                self.app_memory.append(
-                    pd.read_csv(os.path.join(self.data_path, f'app_memory_percentiles.anon.d{i + 1:02d}.csv')))
-                self.app_duration.append(
-                    pd.read_csv(os.path.join(self.data_path, f'function_durations_percentiles.anon.d{i + 1:02d}.csv')))
-                self.app_invocation.append(
-                    pd.read_csv(os.path.join(self.data_path, f'invocations_per_function_md.anon.d{i + 1:02d}.csv')))
-            else:
-                # add placeholder for index == day
-                self.app_memory.append(None)
-                self.app_duration.append(None)
-                self.app_invocation.append(None)
+                day = i + 1
+                df = pd.read_csv(os.path.join(self.data_path, f'app_memory_percentiles.anon.d{day:02d}.csv'))
+                df["day"] = day
+                #
+                # if self.app_memory is None:
+                #     self.app_memory = df
+                # else:
+                # pd.add(self.app_memory, df)
+                # self.app_memory.add(df, fill_value=0)
+                pd.concat([self.app_memory, df], axis=0)
+            #     self.app_duration.append(pd.read_csv(os.path.join(self.data_path, f'function_durations_percentiles.anon.d{i + 1:02d}.csv')))
+            #     self.app_invocation.append(pd.read_csv(os.path.join(self.data_path, f'invocations_per_function_md.anon.d{i + 1:02d}.csv')))
+            # else:
+            #     # add placeholder for index == day
+            #     self.app_memory.append(None)
+            #     self.app_duration.append(None)
+            #     self.app_invocation.append(None)
 
 
     def get_app_data(self):
 
-        df = self.app_invocation[0]#.head(n=1000)
+        df = self.app_invocation #.head(n=1000)
 
         # self.app_invocation[0].head().hist(column=[str(i+1) for i in range(10)]) # 1440
         # df.plot(kind='hist')
@@ -99,7 +105,7 @@ class Dataset:
 if __name__ == "__main__":
 
     dataset = Dataset()
-    dataset.data_import(day_index=[0])  # only load day zero (possible values: subset of [0, .., 11])
+    dataset.data_import(day_index=[0, 1])  # only load day zero (possible values: subset of [0, .., 11])
 
     dataset.get_app_data()
 
