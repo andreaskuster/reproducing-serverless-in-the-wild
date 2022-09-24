@@ -77,16 +77,20 @@ class Dataset:
                 self.app_duration = pd.concat([self.app_duration, df_duration], axis=0)
                 self.app_invocation = pd.concat([self.app_invocation, df_invocation], axis=0)
 
+        # match Mem usage and Function duration into the function invocation Dataframe
+        self.app_invocation = pd.merge(self.app_invocation, self.app_memory[["HashApp", "AverageAllocatedMb"]], on="HashApp", how="inner")
+        self.app_invocation.rename(columns={"AverageAllocatedMb": "AverageMem"}, inplace=True)
+        self.app_invocation = pd.merge(self.app_invocation, self.app_duration[["HashFunction", "Average"]], on="HashFunction", how="inner")
+        self.app_invocation.rename(columns={"Average": "AverageDuration"}, inplace=True)
+
     def get_function_invocations(self, day, time):
-        # day [1..12], time e [1, .., 1440]
-        df = self.app_invocation[self.app_invocation["day"] == day].get(key=["HashFunction", str(time)])
-        df["Mem"] = 10 # TODO: get actual mem
+        # day [1..12], time [1, .., 1440]
+        df = self.app_invocation[self.app_invocation["day"] == day].get(key=["HashApp", "HashFunction", str(time), "AverageMem", "AverageDuration"])
         return df
 
     def data_analysis(self):
-
         """"
-        TODO (Andreas): produce nice plots about input data:
+        TODO: produce nice plots about input data:
             - histograms
             - changes between days
             - changes within a day
@@ -95,12 +99,10 @@ class Dataset:
             including var/mean/..
         """
 
-
         df = self.app_invocation
 
-        column_list = [str(x+1) for x in range(1440)]
+        column_list = [str(x + 1) for x in range(1440)]
         print(column_list)
-
 
         df["sum"] = df[column_list].sum(axis=1)
 
