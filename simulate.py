@@ -25,7 +25,7 @@ if __name__ == "__main__":
     model.add_compute_nodes(num_nodes=args.num_nodes, node_mem_mb=args.node_mem_mb)
 
     # run model
-    for day in range(1, 12+1):  # 1..12
+    for day in range(1, 2):  # 1..12 TODO: extend to full range
         for time in range(1, 2):  # 1..1440 TODO: extend to full range
             invocations = data.get_function_invocations(day, time)
             # iterate over all invocations of the minute time bin
