@@ -25,7 +25,7 @@ class ComputeNode:
 
     def add_function(self, invocation):
         # cold start -> add data to memory
-        if not self.app_exists(invocation):
+        if not self.app_exists(invocation):  # TODO: this is a cold-start -> we should add it as a metric
             self.mem_avail -= invocation["AverageMem"]
 
         # prep data frame
