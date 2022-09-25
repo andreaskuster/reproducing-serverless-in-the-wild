@@ -12,7 +12,8 @@ class ComputeNode:
         self.total_mem = mem_mb
         self.mem_avail = self.total_mem
         self.function_store = pd.DataFrame(
-            columns=["HashApp", "HashFunction", "AverageMem", "AverageDuration", "InvocationCount", "LastUsed"])
+            columns=["HashApp", "HashFunction", "AverageMem", "AverageDuration", "InvocationCount", "LastUsed",
+                     "ColdStartCount"])
 
     def mem_available(self):
         return self.mem_avail
@@ -34,8 +35,9 @@ class ComputeNode:
             "HashFunction": [invocation["HashFunction"]],
             "AverageMem": [invocation["AverageMem"]],
             "AverageDuration": [invocation["AverageDuration"]],
-            "InvocationCount": [0],  # TODO
-            "LastUsed": [0]  # TODO
+            "InvocationCount": [0],  # TODO: add performance metrics
+            "LastUsed": [0],  # TODO: add performance metrics
+            "ColdStartCount": [0]  # TODO: add performance metrics
         })
         self.function_store = pd.concat([self.function_store, df], axis=0)
 
@@ -83,4 +85,3 @@ class Model:
         # load app & function
         if not self.compute_nodes[0].function_exists(invocation):
             self.compute_nodes[0].add_function(invocation)
-

@@ -90,13 +90,11 @@ class Dataset:
 
     def data_analysis(self):
         """"
-        TODO: produce nice plots about input data:
+        TODO: produce nice plots about input data (including var/mean/..):
             - histograms
             - changes between days
             - changes within a day
-
             - changes per Owner/App/Function
-            including var/mean/..
         """
 
         df = self.app_invocation
