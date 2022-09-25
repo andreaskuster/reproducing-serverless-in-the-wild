@@ -1,22 +1,31 @@
 # reproducing-serverless-in-the-wild
 
-
-
 # Install
-
 ```
 source setup_env.sh
 ```
 
 # Assumptions
-
 - Function invocation duration: take Average (we could extend with Gaussian distribution)
 - Function memory consumption: use AverageAllocatedMb (we could extend with Gaussian distribution)
 - A function execution does not require additional memory (e.g. exection of the same function twice on the same compute node uses only 1x the memory allocated to the function)
 
-
 Q: What is the execution difference between cold start / warm start?
+
 A: Maybe add a delay as a function of memory usage?
+
+
+# Usage
+```
+usage: simulate.py [-h] [--day_index DAY_INDEX] [--num_nodes NUM_NODES]
+                   [--node_mem_mb NODE_MEM_MB]
+
+optional arguments:
+  -h, --help                 Show this help message and exit
+  --day_index DAY_INDEX      Data day index, subset of [0, .. , 11], default: day0
+  --num_nodes NUM_NODES      Number of compute nodes, default: 1
+  --node_mem_mb NODE_MEM_MB  Memory capacity per node, default: 8GB
+```
 
 
 
