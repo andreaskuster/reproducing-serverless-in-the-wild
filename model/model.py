@@ -17,6 +17,12 @@ class ComputeNode:
     def mem_available(self):
         return self.mem_avail
 
+    def function_invocation(self):
+        # This should be called on every function invocation to update internal metrics (e.g. #function calls,
+        # last time of function call (to check if the function is still in execution, and thus cannot get evicted yet)
+        # #cold starts / #warm starts..
+        raise NotImplementedError()
+
     def add_function(self, invocation):
         # cold start -> add data to memory
         if not self.app_exists(invocation):
@@ -35,22 +41,16 @@ class ComputeNode:
 
     def remove_app(self, invocation):
         self.function_store = self.function_store[self.function_store["HashApp"] != invocation["HashApp"]]
-        self.mem_avail += invocation["AverageMem"][0]
+        self.mem_avail += invocation["AverageMem"]
 
     def function_exists(self, invocation):
-        return invocation["HashFunction"] in self.function_store["HashFunction"]
+        return invocation["HashFunction"] in self.function_store["HashFunction"].values
 
     def app_exists(self, invocation):
-        return invocation["HashApp"] in self.function_store["HashApp"]
-
-    def get_lru_function(self):  # lru = least recently used
-        raise NotImplementedError()
-
-    def get_random_function(self):
-        return self.function_store.head(1)
+        return invocation["HashApp"] in self.function_store["HashApp"].values
 
     def get_random_app(self):
-        return self.function_store.head(1)
+        return self.function_store.iloc[0]
 
 
 class Model:
@@ -68,17 +68,19 @@ class Model:
         return np.argmax([x.mem_available() for x in self.compute_nodes])
 
     def schedule(self, invocation):
-        # The current implementation:
-        # - always schedules on node0
-        # - remove random function until enough memory is available
-        # make space if necessary
-        if not self.compute_nodes[0].app_exists(
-                invocation):  # if function already exists in memory -> we just need to update the metrics (e.g. lru)
+        """
+        The current implementation:
+         - always schedules on node0
+         - remove random function until enough memory is available
+        TODO:
+         (1) implement the scheduler from the paper
+         (2) Improve e.g. different policy, reinforcement learning, ..
+        """
+        # make space if necessary (if the app already exists in memory -> we just need to update the metrics)
+        if not self.compute_nodes[0].app_exists(invocation):
             while invocation["AverageMem"] > self.compute_nodes[0].mem_available():
                 self.compute_nodes[0].remove_app(self.compute_nodes[0].get_random_app())
         # load app & function
         if not self.compute_nodes[0].function_exists(invocation):
             self.compute_nodes[0].add_function(invocation)
-        # TODO:
-        # (1) implement the scheduler from the paper
-        # (2) Improve e.g. different policy, reinforcement learning, ..
+
