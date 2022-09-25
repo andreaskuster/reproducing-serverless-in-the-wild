@@ -78,14 +78,17 @@ class Dataset:
                 self.app_invocation = pd.concat([self.app_invocation, df_invocation], axis=0)
 
         # match Mem usage and Function duration into the function invocation Dataframe
-        self.app_invocation = pd.merge(self.app_invocation, self.app_memory[["HashApp", "AverageAllocatedMb"]], on="HashApp", how="inner")
+        self.app_invocation = pd.merge(self.app_invocation, self.app_memory[["HashApp", "AverageAllocatedMb"]],
+                                       on="HashApp", how="inner")
         self.app_invocation.rename(columns={"AverageAllocatedMb": "AverageMem"}, inplace=True)
-        self.app_invocation = pd.merge(self.app_invocation, self.app_duration[["HashFunction", "Average"]], on="HashFunction", how="inner")
+        self.app_invocation = pd.merge(self.app_invocation, self.app_duration[["HashFunction", "Average"]],
+                                       on="HashFunction", how="inner")
         self.app_invocation.rename(columns={"Average": "AverageDuration"}, inplace=True)
 
     def get_function_invocations(self, day, time):
         # day [1..12], time [1, .., 1440]
-        df = self.app_invocation[self.app_invocation["day"] == day].get(key=["HashApp", "HashFunction", str(time), "AverageMem", "AverageDuration"])
+        df = self.app_invocation[self.app_invocation["day"] == day].get(
+            key=["HashApp", "HashFunction", str(time), "AverageMem", "AverageDuration"])
         return df
 
     def data_analysis(self):
@@ -97,20 +100,32 @@ class Dataset:
             - changes per Owner/App/Function
         """
 
+        # input data
         df = self.app_invocation
 
+        # define column array for all minute bins of a day
         column_list = [str(x + 1) for x in range(1440)]
-        print(column_list)
 
+        # plot distribution of invocations per function
         df["sum"] = df[column_list].sum(axis=1)
+        df.hist(column='sum', bins=100)
+        plt.yscale('log')
+        plt.ylabel("functions")
+        plt.xlabel("invocations")
+        plt.title("Distribution of invocations per function")
+        plt.show()
 
-        df.hist(column='sum')
-
+        # plot distribution of function duration
+        df.hist(column='AverageDuration', bins=100)
+        plt.yscale('log')
+        plt.ylabel("functions")
+        plt.xlabel("duration")
+        plt.title("Distribution of duration per function")
         plt.show()
 
 
 if __name__ == "__main__":
     dataset = Dataset()
-    dataset.data_import(day_index=[0, 1])  # only load day zero (possible values: subset of [0, .., 11])
+    dataset.data_import(day_index=range(1))  # only load day zero (possible values: subset of [0, .., 11])
     dataset.data_analysis()
     sys.exit(0)
