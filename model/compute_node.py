@@ -12,7 +12,7 @@ class ComputeNode:
         self.mem_avail = self.total_mem
         self.function_store = pd.DataFrame(
             columns=["HashApp", "HashFunction", "AverageMem", "AverageDuration", "InvocationCount", "LastUsed",
-                     "ColdStartCount"])
+                     "ColdStartCount"]) # TODO: maybe call AverageMem AverageAppMemory?
 
     def mem_available(self):
         return self.mem_avail
