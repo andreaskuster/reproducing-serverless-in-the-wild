@@ -32,7 +32,7 @@ class Dataset:
         self.app_invocation = pd.DataFrame()
 
     def data_import(self, day_index=range(12)):
-        if not os.path.exists(os.path.join(self.path, self.file_name)):
+        if not os.path.exists(self.file_name):
             self.fetch_data()
         if not os.path.exists(os.path.join(self.path, self.data_path)):
             self.extract_data()
@@ -55,6 +55,7 @@ class Dataset:
     def parse_data(self, day_index=range(12)):
         # TODO: we currently load ~2GB of data into memory, resulting n a memory consumption of ~4GB, which is
         #  suboptimal. Loading dataset for single days reduces the memory consumption to ~1.2GB
+        print(f'Parsing {self.file_name}')
         for i in range(12):  # we omit 13, 14 as we have no data for app_memory
             if i in day_index:
                 # index -> day
@@ -84,6 +85,11 @@ class Dataset:
         self.app_invocation = pd.merge(self.app_invocation, self.app_duration[["HashFunction", "Average"]],
                                        on="HashFunction", how="inner")
         self.app_invocation.rename(columns={"Average": "AverageDuration"}, inplace=True)
+
+        # save the three pd into csv
+        self.app_memory.to_csv(os.path.join(self.data_path,'app_memory.csv'))
+        self.app_duration.to_csv(os.path.join(self.data_path,'app_duration.csv'))
+        self.app_invocation.to_csv(os.path.join(self.data_path,'app_invocation.csv'))
 
     def get_function_invocations(self, day, time):
         # day [1..12], time [1, .., 1440]
