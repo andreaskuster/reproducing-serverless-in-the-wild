@@ -56,32 +56,32 @@ class Dataset:
         # TODO: we currently load ~2GB of data into memory, resulting n a memory consumption of ~4GB, which is
         #  suboptimal. Loading dataset for single days reduces the memory consumption to ~1.2GB
         print(f'Parsing {self.file_name}')
-        for i in range(12):  # we omit 13, 14 as we have no data for app_memory
-            if i in day_index:
-                # index -> day
-                day = i + 1
+        for i in day_index:  # we omit 13, 14 as we have no data for app_memory
+            # index -> day
+            day = i + 1
 
-                # import new data from .csv file
-                df_memory = pd.read_csv(os.path.join(self.data_path, f'app_memory_percentiles.anon.d{day:02d}.csv'))
-                df_duration = pd.read_csv(
-                    os.path.join(self.data_path, f'function_durations_percentiles.anon.d{i + 1:02d}.csv'))
-                df_invocation = pd.read_csv(
-                    os.path.join(self.data_path, f'invocations_per_function_md.anon.d{i + 1:02d}.csv'))
+            # import new data from .csv file
+            df_memory = pd.read_csv(os.path.join(self.data_path, f'app_memory_percentiles.anon.d{day:02d}.csv'))
+            df_duration = pd.read_csv(
+                os.path.join(self.data_path, f'function_durations_percentiles.anon.d{day:02d}.csv'))
+            df_invocation = pd.read_csv(
+                os.path.join(self.data_path, f'invocations_per_function_md.anon.d{day:02d}.csv'))
 
-                # add day column
-                df_memory["day"] = day
-                df_duration["day"] = day
-                df_invocation["day"] = day
+            # add day column
+            df_memory["day"] = day
+            df_duration["day"] = day
+            df_invocation["day"] = day
 
-                # concatenate with existing data
-                self.app_memory = pd.concat([self.app_memory, df_memory], axis=0)
-                self.app_duration = pd.concat([self.app_duration, df_duration], axis=0)
-                self.app_invocation = pd.concat([self.app_invocation, df_invocation], axis=0)
+            # concatenate with existing data
+            self.app_memory = pd.concat([self.app_memory, df_memory], axis=0)
+            self.app_duration = pd.concat([self.app_duration, df_duration], axis=0)
+            self.app_invocation = pd.concat([self.app_invocation, df_invocation], axis=0)
 
         # match Mem usage and Function duration into the function invocation Dataframe
         self.app_invocation = pd.merge(self.app_invocation, self.app_memory[["HashApp", "AverageAllocatedMb"]],
                                        on="HashApp", how="inner")
         self.app_invocation.rename(columns={"AverageAllocatedMb": "AverageMem"}, inplace=True)
+
         self.app_invocation = pd.merge(self.app_invocation, self.app_duration[["HashFunction", "Average"]],
                                        on="HashFunction", how="inner")
         self.app_invocation.rename(columns={"Average": "AverageDuration"}, inplace=True)
@@ -93,8 +93,10 @@ class Dataset:
 
     def get_function_invocations(self, day, time):
         # day [1..12], time [1, .., 1440]
-        df = self.app_invocation[self.app_invocation["day"] == day].get(
-            key=["HashApp", "HashFunction", str(time), "AverageMem", "AverageDuration"])
+        df = self.app_invocation[(self.app_invocation['day']==day) &
+            (self.app_invocation[str(time)]!=0)].get(
+                key=["HashApp", "HashFunction", str(time), "AverageMem", "AverageDuration"])
+        # print(df)
         return df
 
     def data_analysis(self):
