@@ -9,6 +9,7 @@ source setup_env.sh
 - Function invocation duration: take Average (we could extend with Gaussian distribution)
 - Function memory consumption: use AverageAllocatedMb (we could extend with Gaussian distribution)
 - A function execution does not require additional memory (e.g. exection of the same function twice on the same compute node uses only 1x the memory allocated to the function)
+- The minimum interval of each function takes 1 ms to be executed.
 
 Q: What is the execution difference between cold start / warm start?
 
