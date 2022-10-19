@@ -96,4 +96,5 @@ class ComputeNode:
 
     def get_largest_mem_app(self):
         finished_app_df = self.get_finished_fun_df()
-        return finished_app_df.iloc[finished_app_df['AverageMem'].idxmax()]
+        tmp = finished_app_df['AverageMem'].copy()
+        return finished_app_df.iloc[tmp.astype('int64').argmax(),:]
