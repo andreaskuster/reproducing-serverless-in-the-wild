@@ -83,7 +83,8 @@ class Dataset:
         # cleanup and reduce input data before join (solves out-of-memory issue)
         # application memory
         self.app_memory = self.app_memory.drop_duplicates(subset=['HashApp'])
-        self.app_memory = self.app_memory[["HashApp", "AverageAllocatedMb"]]#, "AverageAllocatedMb_pct1", "AverageAllocatedMb_pct100"]]
+        self.app_memory = self.app_memory[
+            ["HashApp", "AverageAllocatedMb", "AverageAllocatedMb_pct1", "AverageAllocatedMb_pct100"]]
         # application duration
         self.app_duration = self.app_duration.drop_duplicates(subset=['HashFunction'])
         self.app_duration = self.app_duration[["HashFunction", "Average", "Minimum", "Maximum"]]
@@ -116,17 +117,16 @@ class Dataset:
             - changes within a day
             - changes per Owner/App/Function
         """
-        print("plot_trigger_events")
-        self.plot_trigger_events()
+        # print("plot_trigger_events")
+        # self.plot_trigger_events()
         print("plot_fn_per_app")
         self.plot_fn_per_app()
-        print("plot_interv_between_invocations")
-        self.plot_interv_between_invocations()
-        print("plot_mem_per_app")
-        self.plot_mem_per_app()
-        print("plot_duration_per_fn")
-        self.plot_duration_per_fn()
-
+        # print("plot_interv_between_invocations")
+        # self.plot_interv_between_invocations()
+        # print("plot_mem_per_app")
+        # self.plot_mem_per_app()
+        # print("plot_duration_per_fn")
+        # self.plot_duration_per_fn()
 
     def plot_interv_between_invocations(self):
         # input data
