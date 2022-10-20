@@ -63,22 +63,22 @@ class Dataset:
             # index -> day
             day = i + 1
 
-                # import new data from .csv file
-                df_memory = pd.read_csv(os.path.join(self.data_path, f'app_memory_percentiles.anon.d{day:02d}.csv'))
-                df_duration = pd.read_csv(
-                    os.path.join(self.data_path, f'function_durations_percentiles.anon.d{i + 1:02d}.csv'))
-                df_invocation = pd.read_csv(
-                    os.path.join(self.data_path, f'invocations_per_function_md.anon.d{i + 1:02d}.csv'))
+            # import new data from .csv file
+            df_memory = pd.read_csv(os.path.join(self.data_path, f'app_memory_percentiles.anon.d{day:02d}.csv'))
+            df_duration = pd.read_csv(
+                os.path.join(self.data_path, f'function_durations_percentiles.anon.d{i + 1:02d}.csv'))
+            df_invocation = pd.read_csv(
+                os.path.join(self.data_path, f'invocations_per_function_md.anon.d{i + 1:02d}.csv'))
 
-                # add day column
-                df_memory["day"] = day
-                df_duration["day"] = day
-                df_invocation["day"] = day
+            # add day column
+            df_memory["day"] = day
+            df_duration["day"] = day
+            df_invocation["day"] = day
 
-                # concatenate with existing data
-                self.app_memory = pd.concat([self.app_memory, df_memory], axis=0)
-                self.app_duration = pd.concat([self.app_duration, df_duration], axis=0)
-                self.app_invocation = pd.concat([self.app_invocation, df_invocation], axis=0)
+            # concatenate with existing data
+            self.app_memory = pd.concat([self.app_memory, df_memory], axis=0)
+            self.app_duration = pd.concat([self.app_duration, df_duration], axis=0)
+            self.app_invocation = pd.concat([self.app_invocation, df_invocation], axis=0)
 
         # cleanup and reduce input data before join (solves out-of-memory issue)
         # application memory
@@ -105,9 +105,9 @@ class Dataset:
 
     def get_function_invocations(self, day, time):
         # day [1..12], time [1, .., 1440]
-        df = self.app_invocation[(self.app_invocation['day']==day) &
-            (self.app_invocation[str(time)]!=0)].get(
-                key=["HashApp", "HashFunction", str(time), "AverageMem", "AverageDuration"])
+        df = self.app_invocation[(self.app_invocation['day'] == day) &
+                                 (self.app_invocation[str(time)] != 0)].get(
+            key=["HashApp", "HashFunction", str(time), "AverageMem", "AverageDuration"])
         # print(df)
         return df
 
