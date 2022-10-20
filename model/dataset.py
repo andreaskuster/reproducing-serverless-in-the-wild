@@ -90,6 +90,12 @@ class Dataset:
         self.app_memory.to_csv(os.path.join(self.data_path,'app_memory.csv'))
         self.app_duration.to_csv(os.path.join(self.data_path,'app_duration.csv'))
         self.app_invocation.to_csv(os.path.join(self.data_path,'app_invocation.csv'))
+    
+    def read_data_from_parse_data(self):
+        self.app_memory = pd.read_csv(os.path.join(self.data_path,'app_memory.csv'))
+        self.app_duration = pd.read_csv(os.path.join(self.data_path,'app_duration.csv'))
+        self.app_invocation = pd.read_csv(os.path.join(self.data_path,'app_invocation.csv'))
+        return
 
     def get_function_invocations(self, day, time):
         # day [1..12], time [1, .., 1440]

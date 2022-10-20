@@ -3,6 +3,7 @@
 
 import sys
 import argparse
+from xmlrpc.client import boolean
 from tqdm import tqdm
 from Controller.controller import Controller
 
@@ -16,12 +17,17 @@ if __name__ == "__main__":
     # serverless compute node parameters
     parser.add_argument("--num_nodes", type=int, default=1, help="Number of compute nodes, default: 1")
     parser.add_argument("--node_mem_mb", type=int, default=8192, help="Memory capacity per node, default: 8GB")
-    parser.add_argument("--method", type=str, default='keep_alive', help="Controller stragety for pre-warming window and keep-alive window")
+    parser.add_argument("--method", type=str, default='hybrid', choices=['keep_alive', 'hybrid', 'reinfored'], help="Controller stragety for pre-warming window and keep-alive window")
+    parser.add_argument("--fast_read", type=boolean, default=True, help="read data saved in 'app_xxx' ")
     args = parser.parse_args()
 
     # load dataset
     data = Dataset()
-    data.data_import(args.day_index)
+    if args.fast_read:
+        data.read_data_from_parse_data()
+    else:
+        data.data_import(args.day_index)
+    
 
     # create backend
     model = Model()
@@ -39,7 +45,10 @@ if __name__ == "__main__":
             i_record = 0
             for i, invocation in tqdm(invocations.iterrows(),total=invocations_num):
                 model.schedule(i, invocation, invocations_num, method='earliest_app')
+                pre_warm_window, keep_alive_window = controller.set_window(invocation, time)
+
                 i_record = i
+
             # update the duration after one minute
             rest_ms = invocations_num - i_record
             model.compute_nodes[0].update_minute_fun_duration(rest_ms)
