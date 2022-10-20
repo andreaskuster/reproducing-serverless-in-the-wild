@@ -117,16 +117,16 @@ class Dataset:
             - changes within a day
             - changes per Owner/App/Function
         """
-        # print("plot_trigger_events")
-        # self.plot_trigger_events()
+        print("plot_trigger_events")
+        self.plot_trigger_events()
         print("plot_fn_per_app")
         self.plot_fn_per_app()
-        # print("plot_interv_between_invocations")
-        # self.plot_interv_between_invocations()
-        # print("plot_mem_per_app")
-        # self.plot_mem_per_app()
-        # print("plot_duration_per_fn")
-        # self.plot_duration_per_fn()
+        print("plot_interv_between_invocations")
+        self.plot_interv_between_invocations()
+        print("plot_mem_per_app")
+        self.plot_mem_per_app()
+        print("plot_duration_per_fn")
+        self.plot_duration_per_fn()
 
     def plot_interv_between_invocations(self):
         # input data
