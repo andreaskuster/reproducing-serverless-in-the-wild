@@ -40,7 +40,7 @@ class Dataset:
 
     def fetch_data(self):
         print(f"Downloading {self.file_name}")
-        urlretrieve(self.data_uri, os.path.join(self.path, self.file_name))
+        urlretrieve(self.data_uri, self.file_name)
 
     def extract_data(self):
         print(f"Extracting {self.file_name}")
