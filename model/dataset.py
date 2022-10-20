@@ -58,10 +58,10 @@ class Dataset:
     def parse_data(self, day_index=range(12)):
         # TODO: we currently load ~2GB of data into memory, resulting n a memory consumption of ~4GB, which is
         #  suboptimal. Loading dataset for single days reduces the memory consumption to ~1.2GB
-        for i in range(12):  # we omit 13, 14 as we have no data for app_memory
-            if i in day_index:
-                # index -> day
-                day = i + 1
+        print(f'Parsing {self.file_name}')
+        for i in day_index:  # we omit 13, 14 as we have no data for app_memory
+            # index -> day
+            day = i + 1
 
                 # import new data from .csv file
                 df_memory = pd.read_csv(os.path.join(self.data_path, f'app_memory_percentiles.anon.d{day:02d}.csv'))
@@ -105,8 +105,10 @@ class Dataset:
 
     def get_function_invocations(self, day, time):
         # day [1..12], time [1, .., 1440]
-        df = self.app_invocation[self.app_invocation["day"] == day].get(
-            key=["HashApp", "HashFunction", str(time), "AverageMem", "AverageDuration"])
+        df = self.app_invocation[(self.app_invocation['day']==day) &
+            (self.app_invocation[str(time)]!=0)].get(
+                key=["HashApp", "HashFunction", str(time), "AverageMem", "AverageDuration"])
+        # print(df)
         return df
 
     def plot_interv_between_invocations(self):
