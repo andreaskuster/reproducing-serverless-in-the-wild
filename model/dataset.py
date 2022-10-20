@@ -109,25 +109,6 @@ class Dataset:
             key=["HashApp", "HashFunction", str(time), "AverageMem", "AverageDuration"])
         return df
 
-    def data_analysis(self, savefig=False):
-        """"
-        Produce nice plots about input data (including var/mean/..):
-            - histograms
-            - changes between days
-            - changes within a day
-            - changes per Owner/App/Function
-        """
-        print("plot_trigger_events")
-        self.plot_trigger_events()
-        print("plot_fn_per_app")
-        self.plot_fn_per_app()
-        print("plot_interv_between_invocations")
-        self.plot_interv_between_invocations()
-        print("plot_mem_per_app")
-        self.plot_mem_per_app()
-        print("plot_duration_per_fn")
-        self.plot_duration_per_fn()
-
     def plot_interv_between_invocations(self):
         # input data
         df = self.app_invocation
@@ -296,7 +277,46 @@ class Dataset:
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--plot_trigger_events', action='store_true')
+    parser.add_argument('--plot_fn_per_app', action='store_true')
+    parser.add_argument('--plot_interv_between_invocations', action='store_true')
+    parser.add_argument('--plot_mem_per_app', action='store_true')
+    parser.add_argument('--plot_duration_per_fn', action='store_true')
+
+    args = parser.parse_args()
+
     dataset = Dataset()
     dataset.data_import(day_index=range(12))  # only load day zero (possible values: subset of [0, .., 11])
-    dataset.data_analysis()
+
+    """"
+    Produce nice plots about input data (including var/mean/..):
+        - histograms
+        - changes between days
+        - changes within a day
+        - changes per Owner/App/Function
+    """
+
+    if args.plot_trigger_events:
+        print("plot_trigger_events")
+        dataset.plot_trigger_events()
+
+    if args.plot_fn_per_app:
+        print("plot_fn_per_app")
+        dataset.plot_fn_per_app()
+
+    if args.plot_interv_between_invocations:
+        print("plot_interv_between_invocations")
+        dataset.plot_interv_between_invocations()
+
+    if args.plot_mem_per_app:
+        print("plot_mem_per_app")
+        dataset.plot_mem_per_app()
+
+    if args.plot_duration_per_fn:
+        print("plot_duration_per_fn")
+        dataset.plot_duration_per_fn()
+
     sys.exit(0)
