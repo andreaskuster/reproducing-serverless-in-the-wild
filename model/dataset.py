@@ -31,6 +31,9 @@ class Dataset:
         self.app_duration = pd.DataFrame()
         self.app_invocation = pd.DataFrame()
 
+        # analysis parameters
+        self.savefig = True
+
     def data_import(self, day_index=range(12)):
         if not os.path.exists(os.path.join(self.path, self.file_name)):
             self.fetch_data()
@@ -77,6 +80,14 @@ class Dataset:
                 self.app_duration = pd.concat([self.app_duration, df_duration], axis=0)
                 self.app_invocation = pd.concat([self.app_invocation, df_invocation], axis=0)
 
+        # cleanup and reduce input data before join (solves out-of-memory issue)
+        # application memory
+        self.app_memory = self.app_memory.drop_duplicates(subset=['HashApp'])
+        self.app_memory = self.app_memory[["HashApp", "AverageAllocatedMb"]]
+        # application duration
+        self.app_duration = self.app_duration.drop_duplicates(subset=['HashFunction'])
+        self.app_duration = self.app_duration[["HashFunction", "Average"]]
+
         # match Mem usage and Function duration into the function invocation Dataframe
         self.app_invocation = pd.merge(self.app_invocation, self.app_memory[["HashApp", "AverageAllocatedMb"]],
                                        on="HashApp", how="inner")
@@ -99,7 +110,6 @@ class Dataset:
             - changes within a day
             - changes per Owner/App/Function
         """
-
 
         # functions per app
         df = self.app_invocation
@@ -168,16 +178,6 @@ class Dataset:
 
 
 
-        # plt.bar(df_types['Trigger'], df_types['FunctionRelative'])
-        # plt.xlabel("Trigger")
-        # plt.ylabel("% Functions")
-        # plt.show()
-        #
-        # plt.bar(df_types['Trigger'], df_types['InvocationRelative'])
-        # plt.xlabel("Trigger")
-        # plt.ylabel("% Invocations")
-        # plt.show()
-
         fig, axs = plt.subplots(2)
         fig.suptitle('Trigger Events')
         axs[0].bar(df_types['Trigger'], df_types['FunctionRelative'])
@@ -188,11 +188,15 @@ class Dataset:
         axs[0].set(xticklabels=[])
         plt.xlabel("Trigger")
 
-        plt.show()
+        if self.savefig:
+            plt.savefig("trigger_events.pdf")
+        else:
+            plt.show()
 
 
 if __name__ == "__main__":
     dataset = Dataset()
     dataset.data_import(day_index=range(1))  # only load day zero (possible values: subset of [0, .., 11])
+    # dataset.plot_trigger_events()
     dataset.data_analysis()
     sys.exit(0)
