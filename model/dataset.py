@@ -91,7 +91,7 @@ class Dataset:
             key=["HashApp", "HashFunction", str(time), "AverageMem", "AverageDuration"])
         return df
 
-    def data_analysis(self):
+    def data_analysis(self, save = False):
         """"
         TODO: produce nice plots about input data (including var/mean/..):
             - histograms
@@ -99,6 +99,27 @@ class Dataset:
             - changes within a day
             - changes per Owner/App/Function
         """
+
+
+        # functions per app
+        df = self.app_invocation
+
+        # define column array for all minute bins of a day
+        column_list = [str(x + 1) for x in range(1440)]
+
+        # count trigger types
+        df['HashApp'] = df['HashApp'].astype("category")
+
+        # .cat.categories
+        df_apps = pd.DataFrame()
+        for cat in df['HashApp'].cat.categories:
+            df_apps = df_apps.append({'HashApp': cat,
+                                      'FunctionCount': df.loc[df["HashApp"] == cat].size,
+                                      'InvocationCount': df.loc[df["HashApp"] == cat][column_list].sum(axis=1).sum(axis=0)}, ignore_index=True)
+
+        plt.plot(df_apps[''])
+
+        exit()
 
         # input data
         df = self.app_invocation
@@ -121,6 +142,52 @@ class Dataset:
         plt.ylabel("functions")
         plt.xlabel("duration")
         plt.title("Distribution of duration per function")
+        plt.show()
+
+
+    def plot_trigger_events(self):
+        df = self.app_invocation
+
+        # define column array for all minute bins of a day
+        column_list = [str(x + 1) for x in range(1440)]
+
+        # count trigger types
+        df['Trigger'] = df['Trigger'].astype("category")
+
+        # .cat.categories
+        df_types = pd.DataFrame()
+        for cat in df['Trigger'].cat.categories:
+            df_types = df_types.append({'Trigger': cat,
+                                        'FunctionCount': df.loc[df["Trigger"] == cat].size,
+                                        'InvocationCount': df.loc[df["Trigger"] == cat][column_list].sum(axis=1).sum(axis=0)}, ignore_index=True)
+        total = df_types['FunctionCount'].sum(axis=0)
+        df_types['FunctionRelative'] = df_types['FunctionCount'] / total
+
+        total = df_types['InvocationCount'].sum(axis=0)
+        df_types['InvocationRelative'] = df_types['InvocationCount'] / total
+
+
+
+        # plt.bar(df_types['Trigger'], df_types['FunctionRelative'])
+        # plt.xlabel("Trigger")
+        # plt.ylabel("% Functions")
+        # plt.show()
+        #
+        # plt.bar(df_types['Trigger'], df_types['InvocationRelative'])
+        # plt.xlabel("Trigger")
+        # plt.ylabel("% Invocations")
+        # plt.show()
+
+        fig, axs = plt.subplots(2)
+        fig.suptitle('Trigger Events')
+        axs[0].bar(df_types['Trigger'], df_types['FunctionRelative'])
+        axs[0].set(ylabel="% Functions")
+        axs[1].bar(df_types['Trigger'], df_types['InvocationRelative'])
+        axs[1].set(ylabel="% Invocations")
+
+        axs[0].set(xticklabels=[])
+        plt.xlabel("Trigger")
+
         plt.show()
 
 
