@@ -21,17 +21,18 @@ class Controller:
         self.ArrivalHistory = list()
 
     def set_window(self, invocation, time):
-        pre_warm_window = 0
-        keep_alive_window = 0
         if self.method == 'keep_alive':
             pre_warm_window, keep_alive_window = self.set_window_keep_alive(invocation)
         elif self.method == 'hybrid':
-            self.set_window_hybrid(invocation, time)
+            pre_warm_window, keep_alive_window = self.set_window_hybrid(invocation, time)
         elif self.method == 'reinfored':
-            self.set_window_reinforeced(invocation)
+            pre_warm_window, keep_alive_window = self.set_window_reinforeced(invocation)
         else:
             raise NotImplementedError
-        return pre_warm_window, keep_alive_window
+        invocation["pre_warm_window"] = pre_warm_window
+        invocation["keep_alive_window"] = keep_alive_window
+        invocation["arrival_time"] = time
+        return invocation
 
     def set_window_keep_alive(self, invocation):
         pre_warm_window = 0

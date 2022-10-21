@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
+import atexit
 import numpy as np
+from numpy._typing import _ArrayLikeStr_co
 import pandas as pd
 
 import model
@@ -14,6 +16,8 @@ class Model:
         # TODO: add performance counters e.g. how many cold starts, how many hot starts
         self.df_mem_available = pd.DataFrame(columns=range(0,11),index=range(1,1441))
         self.df_mem_usage = pd.DataFrame(columns=range(0,11),index=range(1,1441))
+        self.app_to_reload = pd.DataFrame(columns=["HashApp", "HashFunction", "AverageMem", "AverageDuration", "pre_warm_window", 
+                                        "keep_alive_window", "ArrivalTime", "ExecuteDuration", "InvocationCount", "LastUsed", "ColdStartCount"])
         
 
     def add_compute_nodes(self, num_nodes=1, node_mem_mb=8192):
@@ -31,7 +35,7 @@ class Model:
         Args:
             invocation (Series): the invocated function needed to be loaded
             method (str): how existing app will remove in order to give enough memory space.
-                          Option: 'earliest_app', 'largest_mem', 'random'
+                          Option: 'earliest_app', 'largest_mem', 'random', 'earlist_with_pre_warm_app'
 
         The current implementation:
          - always schedules on node0
@@ -40,7 +44,8 @@ class Model:
          (1) implement the scheduler from the paper
          (2) Improve e.g. different policy, reinforcement learning, ..
         """
-        # make space if necessary (if the app already exists in memory -> we just need to update the metrics)
+
+         # make space if necessary (if the app already exists in memory -> we just need to update the metrics)
         if not self.compute_nodes[0].app_exists(invocation):
             # kick off the finished
             while invocation["AverageMem"] > self.compute_nodes[0].mem_available():
@@ -50,11 +55,60 @@ class Model:
                     remove_store = self.compute_nodes[0].get_earliest_app()
                 elif method == 'largest_mem':
                     remove_store = self.compute_nodes[0].get_largest_mem_app()
+                elif method == 'earlist_with_pre_warm_app':
+                    remove_store = self.compute_nodes[0].get_earlist_with_pre_warm_app()
+                    ## if we remove here, we should also modify related information
                 self.compute_nodes[0].remove_app(remove_store)
+                print("use up the memory")
         # load app & function
         if not self.compute_nodes[0].function_exists(invocation):
             self.compute_nodes[0].add_function(invocation)
         else:
-            self.compute_nodes[0].reset_fun_duration(invocation)
+            self.compute_nodes[0].reset_fun_duration(invocation)  # reset the function duration
+            self.compute_nodes[0].update_app_property(invocation) # reset the app properties, including the pre-warm window, keep-alive window.
         # let the clock increase 1ms
         self.compute_nodes[0].add_duration()
+    
+    def release_app(self, time):
+        """
+        release 2 kinds of app:
+        1. finished app and their pre-warm window > 0
+        2. the app whose keep-warm window time is finished.
+        """ 
+        finished_app = self.compute_nodes[0].get_finished_fun_df()
+        if finished_app is None:
+            return
+        app_to_kill = pd.DataFrame(columns=["HashApp", "HashFunction", "AverageMem", "AverageDuration", "pre_warm_window", "keep_alive_window",
+                     "ArrivalTime", "ExecuteDuration", "InvocationCount", "LastUsed", "ColdStartCount"])
+        
+        for i in np.arange(len(finished_app)):
+            app = finished_app.iloc[i].to_frame().T
+            if app['pre_warm_window'][0] > 0:
+                app_to_kill = pd.concat([app_to_kill, app], axis=0)
+                app['release_time'][0] = time
+                app_to_reload = pd.concat([app_to_reload, app], axis=0)
+            elif app['pre_warm_window'][0] == 0 and time >= app['ArrivalTime'][0] + app['keep_alive_window'][0]:
+                app_to_kill = pd.concat([app_to_kill, app], axis=0)
+            elif app['pre_warm_window'][0] == 0 and time < app['ArrivalTime'][0] + app['keep_alive_window'][0]:
+                pass
+            else:
+                raise ValueError
+        for i in np.arange(len(app_to_kill)):
+            app = app_to_kill.iloc[i]
+            self.compute_nodes[0].remove_app(app)
+        return
+    
+    def load_app(self, time):
+        """
+        reload the apps based on the pre_warm_window and the time
+        reset the ArrivalTime
+        set the pre_warm_time to 0, it means when the app is finished, it would be released directly, given no new related invocation changes its property.
+        """ 
+        for i in np.arange(len(self.app_to_reload)):
+            app = self.app_to_reload.iloc[i]
+            if app['release_time'] + app['pre_warm_window'] >= time:
+                app_clean = app.drop('release_time', axis=1)
+                app_clean['ArrivalTime'] = time
+                app_clean['pre_warm_window'] = 0
+                self.compute_nodes[0].add_function(app_clean)
+        return
