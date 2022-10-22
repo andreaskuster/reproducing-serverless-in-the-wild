@@ -18,6 +18,8 @@ class Model:
         self.df_mem_usage = pd.DataFrame(columns=range(0,11),index=range(1,1441))
         self.app_to_reload = pd.DataFrame(columns=["HashApp", "HashFunction", "AverageMem", "AverageDuration", "pre_warm_window", 
                                         "keep_alive_window", "ArrivalTime", "ExecuteDuration", "InvocationCount", "LastUsed", "ColdStartCount"])
+        self.ColdStartCount = 0
+        self.InvocationCount = 0
         
 
     def add_compute_nodes(self, num_nodes=1, node_mem_mb=8192):
@@ -46,6 +48,7 @@ class Model:
         """
 
          # make space if necessary (if the app already exists in memory -> we just need to update the metrics)
+        self.InvocationCount += 1
         if not self.compute_nodes[0].app_exists(invocation):
             # kick off the finished
             while invocation["AverageMem"] > self.compute_nodes[0].mem_available():
@@ -60,6 +63,7 @@ class Model:
                     ## if we remove here, we should also modify related information
                 self.compute_nodes[0].remove_app(remove_store)
                 print("use up the memory")
+            self.ColdStartCount += 1
         # load app & function
         if not self.compute_nodes[0].function_exists(invocation):
             self.compute_nodes[0].add_function(invocation)

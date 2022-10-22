@@ -46,7 +46,7 @@ class ComputeNode:
             "ExecuteDuration": [0],  # see how long the app has already execute
             "InvocationCount": [0],  # TODO: add performance metrics
             "LastUsed": [0],  # TODO: add performance metrics
-            "ColdStartCount": [0]  # TODO: add performance metrics
+            "ColdStartCount": [1]  # The first start is always cold start.
         })
         self.function_store = pd.concat([self.function_store, df], axis=0)
 
