@@ -5,4 +5,13 @@ azurefunctions-dataset2019.tar.xz
 #trivial
 model/__pycache__
 .DS_Store
+Controller/__pycache__
+
+
+#environment 
+/venv
+
+/__pycache__
+
+/result
 
