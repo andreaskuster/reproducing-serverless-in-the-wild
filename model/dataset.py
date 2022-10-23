@@ -84,7 +84,8 @@ class Dataset:
 
         self.app_invocation = pd.merge(self.app_invocation, self.app_duration[["HashFunction", "Average"]],
                                        on="HashFunction", how="inner")
-        self.app_invocation.rename(columns={"Average": "AverageDuration"}, inplace=True)
+        self.app_invocation.rename(columns={"Average": "AverageDuration", "Minimum": "MinimumDuration", "Maximum": "MaximumDuration"},
+            inplace=True)
 
         # save the three pd into csv
         self.app_memory.to_csv(os.path.join(self.data_path,'app_memory.csv'))
