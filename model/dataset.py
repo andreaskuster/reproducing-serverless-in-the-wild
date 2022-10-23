@@ -43,7 +43,7 @@ class Dataset:
 
     def fetch_data(self):
         print(f"Downloading {self.file_name}")
-        urlretrieve(self.data_uri, os.path.join(self.path, self.file_name))
+        urlretrieve(self.data_uri, self.file_name)
 
     def extract_data(self):
         print(f"Extracting {self.file_name}")
@@ -99,9 +99,21 @@ class Dataset:
         self.app_invocation.rename(columns={"AverageAllocatedMb": "AverageMem"}, inplace=True)
         self.app_invocation = pd.merge(self.app_invocation, self.app_duration, on="HashFunction", how="inner")
 
-        self.app_invocation.rename(
-            columns={"Average": "AverageDuration", "Minimum": "MinimumDuration", "Maximum": "MaximumDuration"},
+        self.app_invocation = pd.merge(self.app_invocation, self.app_duration[["HashFunction", "Average"]],
+                                       on="HashFunction", how="inner")
+        self.app_invocation.rename(columns={"Average": "AverageDuration", "Minimum": "MinimumDuration", "Maximum": "MaximumDuration"},
             inplace=True)
+
+        # save the three pd into csv
+        self.app_memory.to_csv(os.path.join(self.data_path,'app_memory.csv'))
+        self.app_duration.to_csv(os.path.join(self.data_path,'app_duration.csv'))
+        self.app_invocation.to_csv(os.path.join(self.data_path,'app_invocation.csv'))
+    
+    def read_data_from_parse_data(self):
+        self.app_memory = pd.read_csv(os.path.join(self.data_path,'app_memory.csv'))
+        self.app_duration = pd.read_csv(os.path.join(self.data_path,'app_duration.csv'))
+        self.app_invocation = pd.read_csv(os.path.join(self.data_path,'app_invocation.csv'))
+        return
 
     def get_function_invocations(self, day, time):
         # day [1..12], time [1, .., 1440]
