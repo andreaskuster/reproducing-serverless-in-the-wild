@@ -3,6 +3,7 @@
 
 import atexit
 import io
+from xmlrpc.client import Error
 import numpy as np
 from numpy._typing import _ArrayLikeStr_co
 import pandas as pd
@@ -35,7 +36,7 @@ class Model:
     def max_mem_avail_node_idx(self):
         return np.argmax([x.mem_available() for x in self.compute_nodes])
 
-    def schedule(self,i, invocation, invocations_num, method='random'):
+    def schedule(self, i, invocation, invocations_num, method='random'):
         """
         Args:
             invocation (Series): the invocated function needed to be loaded
@@ -50,7 +51,7 @@ class Model:
          (2) Improve e.g. different policy, reinforcement learning, ..
         """
 
-        self.InvocationCount += 1
+        self.record_start(invocation)
 
          # make space if necessary (if the app already exists in memory -> we just need to update the metrics)
         if not self.compute_nodes[0].app_exists(invocation):  # to judge whether exist in memory
@@ -125,14 +126,20 @@ class Model:
     
     def record_cold_start(self, invocation):
         self.ColdStartCount += 1
+        pos = invocation["HashApp"] == self.app_record["HashApp"]
+        self.app_record.loc[pos, "ColdStartCount"] = [self.app_record.loc[pos, "ColdStartCount"][0] + 1]
+        return
+    
+    def record_start(self, invocation):
+        self.InvocationCount += 1
         if self.app_meet_before(invocation):
             pos = invocation["HashApp"] == self.app_record["HashApp"]
-            self.app_record.los[pos, "ColdStartCount"][0] += 1
-            self.app_record.los[pos, "InvocationCount"][0] += 1
+            self.app_record.loc[pos, "InvocationCount"] = [self.app_record.loc[pos, "InvocationCount"][0] + 1]
+        
         else: # record this app information.
             df = pd.DataFrame({
                         "HashApp": [invocation["HashApp"]],
-                        "ColdStartCount": [1],
+                        "ColdStartCount": [0],
                         "InvocationCount": [1],
                         "WasteMemoryTime": [0],
                     })
@@ -142,4 +149,4 @@ class Model:
     def app_meet_before(self, invocation):
         if len(self.app_record) == 0:
             return False
-        return invocation["HashApp"] in self.app_record["HashApp"]
+        return invocation["HashApp"] in self.app_record["HashApp"].to_list()
