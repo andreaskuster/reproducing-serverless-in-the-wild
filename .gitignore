@@ -1,6 +1,7 @@
 # data
 model/data
 azurefunctions-dataset2019.tar.xz
+asset
 
 #trivial
 model/__pycache__

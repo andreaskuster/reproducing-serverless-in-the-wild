@@ -39,7 +39,7 @@ class ComputeNode:
             "HashFunction": [invocation["HashFunction"]],
             "AverageMem": [invocation["AverageMem"]],
             "AverageDuration": [invocation["AverageDuration"]],
-            "ExecuteDuration": [0],  # see how long the app has already execute
+            "ExecuteDuration": [0],  # see how long the app has already execute, metrics is millisecond
             "InvocationCount": [0],  # TODO: add performance metrics
             "LastUsed": [0],  # TODO: add performance metrics
             "ColdStartCount": [0]  # TODO: add performance metrics
