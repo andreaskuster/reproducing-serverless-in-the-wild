@@ -2,6 +2,7 @@
 # encoding: utf-8
 
 import atexit
+import io
 import numpy as np
 from numpy._typing import _ArrayLikeStr_co
 import pandas as pd
@@ -18,8 +19,10 @@ class Model:
         self.df_mem_usage = pd.DataFrame(columns=range(0,11),index=range(1,1441))
         self.app_to_reload = pd.DataFrame(columns=["HashApp", "HashFunction", "AverageMem", "AverageDuration", "pre_warm_window", 
                                         "keep_alive_window", "ArrivalTime", "ExecuteDuration", "InvocationCount", "LastUsed", "ColdStartCount"])
-        self.ColdStartCount = 0
-        self.InvocationCount = 0
+        self.ColdStartCount = 0  # recore total cold start number
+        self.InvocationCount = 0  # record total invocation number
+        # record app-wise cold start, invocation and wasted memory time
+        self.app_record = pd.DataFrame(columns=["HashApp", "ColdStartCount", "InvocationCount", "WasteMemoryTime"])  
         
 
     def add_compute_nodes(self, num_nodes=1, node_mem_mb=8192):
@@ -47,9 +50,10 @@ class Model:
          (2) Improve e.g. different policy, reinforcement learning, ..
         """
 
-         # make space if necessary (if the app already exists in memory -> we just need to update the metrics)
         self.InvocationCount += 1
-        if not self.compute_nodes[0].app_exists(invocation):
+
+         # make space if necessary (if the app already exists in memory -> we just need to update the metrics)
+        if not self.compute_nodes[0].app_exists(invocation):  # to judge whether exist in memory
             # kick off the finished
             while invocation["AverageMem"] > self.compute_nodes[0].mem_available():
                 if method == 'random':
@@ -63,7 +67,9 @@ class Model:
                     ## if we remove here, we should also modify related information
                 self.compute_nodes[0].remove_app(remove_store)
                 print("use up the memory")
-            self.ColdStartCount += 1
+            # record the app-wise cold start
+            self.record_cold_start(invocation)
+
         # load app & function
         if not self.compute_nodes[0].function_exists(invocation):
             self.compute_nodes[0].add_function(invocation)
@@ -116,3 +122,24 @@ class Model:
                 app_clean['pre_warm_window'] = 0
                 self.compute_nodes[0].add_function(app_clean)
         return
+    
+    def record_cold_start(self, invocation):
+        self.ColdStartCount += 1
+        if self.app_meet_before(invocation):
+            pos = invocation["HashApp"] == self.app_record["HashApp"]
+            self.app_record.los[pos, "ColdStartCount"][0] += 1
+            self.app_record.los[pos, "InvocationCount"][0] += 1
+        else: # record this app information.
+            df = pd.DataFrame({
+                        "HashApp": [invocation["HashApp"]],
+                        "ColdStartCount": [1],
+                        "InvocationCount": [1],
+                        "WasteMemoryTime": [0],
+                    })
+            self.app_record = pd.concat([self.app_record, df], axis=0)
+        return
+
+    def app_meet_before(self, invocation):
+        if len(self.app_record) == 0:
+            return False
+        return invocation["HashApp"] in self.app_record["HashApp"]

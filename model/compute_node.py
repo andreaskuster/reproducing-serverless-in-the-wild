@@ -57,7 +57,7 @@ class ComputeNode:
     def update_minute_fun_duration(self, rest_ms):
         # add the rest milliseconds in one minute after execute all the invocations in this time
         rest_ms = rest_ms-self.total_wait_min
-        if rest_ms<0:
+        if rest_ms<0: 
             # avoid smaller than zero
             rest_ms=0
         self.function_store['ExecuteDuration'] += rest_ms

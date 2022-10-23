@@ -11,3 +11,7 @@ Controller/__pycache__
 #environment 
 /venv
 
+/__pycache__
+
+/result
+
