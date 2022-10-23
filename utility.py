@@ -22,11 +22,10 @@ def fetch_wasted_memory(function_store):
 
 def fetch_app_wise_wasted_memory_time(model):
     function_store = model.compute_nodes[0].function_store
-    for i in range(len(function_store)):
-        function = function_store.iloc[i]
-        function_from_same_app = function_store[function_store["HashApp"] == function["HashApp"]]
+    for i in range(len(model.app_record)):
+        function_from_same_app = function_store[function_store["HashApp"] == model.app_record.iloc[i]["HashApp"]]
         if len(function_from_same_app[function_from_same_app["ExecuteDuration"] < function_from_same_app["AverageDuration"]]) == 0 :
-            model.app_record.loc[model.app_record["HashApp"] == function["HashApp"], "WasteMemoryTime"][0] += 1
+            model.app_record.iloc[i, -1] = model.app_record.iloc[i, -1] + 1
     return model
 
 
