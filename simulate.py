@@ -61,9 +61,6 @@ if __name__ == "__main__":
             for i, invocation in tqdm(invocations.iterrows(),total=invocations_num):
                 invocation = controller.set_window(invocation, time)
                 model.schedule(i, invocation, invocations_num, method='earliest_app')
-                if i > 1000:  # reduce the size for fast test
-                    break
-
                 i_record = i
 
             # update the duration after one minute
