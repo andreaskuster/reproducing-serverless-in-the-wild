@@ -16,6 +16,7 @@ class ComputeNode:
         self.function_store = pd.DataFrame(
             columns=["HashApp", "HashFunction", "AverageMem", "AverageDuration", "pre_warm_window", "keep_alive_window", 
                      "ArrivalTime", "ExecuteDuration", "InvocationCount", "LastUsed", "ColdStartCount"]) # TODO: maybe call AverageMem AverageAppMemory?
+        self.app_store = pd.DataFrame(columns=["HashApp"])
 
     def mem_available(self):
         return self.mem_avail
@@ -50,6 +51,11 @@ class ComputeNode:
         })
         self.function_store = pd.concat([self.function_store, df], axis=0)
 
+        # unify the window property of all functions that call the app
+        pos = self.function_store["HashApp"] == self.function_store.iloc[-1, 0]
+        self.function_store.loc[pos, "pre_warm_window"] = invocation["pre_warm_window"]
+        self.function_store.loc[pos, "keep_alive_window"] = invocation["keep_alive_window"]
+
     def add_duration(self):
         # add 1ms to the execute duration
         self.function_store.loc[:,'ExecuteDuration'] += 1
@@ -79,15 +85,16 @@ class ComputeNode:
             invocation (Series): from the function_store
         """
         self.function_store = self.function_store[self.function_store["HashApp"] != invocation["HashApp"]]
+        self.app_store = self.app_store[self.app_store["HashApp"] != invocation["HashApp"]]
         self.mem_avail += invocation["AverageMem"]
 
     def function_exists(self, invocation):
         return invocation["HashFunction"] in self.function_store["HashFunction"].values
 
     def app_exists(self, invocation):
-        return invocation["HashApp"] in self.function_store["HashApp"].values
+        return invocation["HashApp"] in self.app_store["HashApp"].values  # change to app_store
 
-    def get_finished_fun_df(self):
+    def get_finished_fun_df(self):  #TODO: here is one error. If no functions are finished within this min, we should not force any of them to be finished.
         if len(self.function_store) == 0:
             return None
         if self.function_store[self.function_store['ExecuteDuration']>=self.function_store['AverageDuration']]['ExecuteDuration'].isnull().all():
@@ -119,4 +126,10 @@ class ComputeNode:
             if app['pre_warm_window'] > 0:
                 app_to_kill = pd.concat([app_to_kill, app], axis=0)
         return app_to_kill
-    
+
+    def add_app(self, invocation):
+        df = pd.DataFrame({
+            "HashApp": [invocation["HashApp"]]
+        })
+        self.app_store = pd.concat([self.app_store, df], axis=0)
+        return

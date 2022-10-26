@@ -1,3 +1,4 @@
+from math import ceil
 import pandas as pd
 import numpy as np
 from welford import Welford
@@ -55,8 +56,8 @@ class Controller:
         pos = invocation["HashApp"] == self.histogram["HashApp"]
         distribution = self.distribution[self.histogram.loc[pos, "idx"][0]]
         perc = np.percentile(distribution, np.array([5.0, 99.0]))
-        pre_warm_window, keep_alive_window = perc[0] * 0.9, perc[1] * 1.1
-        return pre_warm_window, keep_alive_window
+        pre_warm_window, keep_alive_window = np.int64(perc[0]) * 0.9, max(np.ceil(perc[1]), 1) * 1.1
+        return int(pre_warm_window), int(keep_alive_window)
 
     def update_distribution(self, invocation, time):
         if not self.histogram_exist(invocation):
