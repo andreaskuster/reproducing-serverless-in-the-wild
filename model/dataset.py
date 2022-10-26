@@ -61,14 +61,14 @@ class Dataset:
         print(f'Parsing {self.file_name}')
         for i in day_index:  # we omit 13, 14 as we have no data for app_memory
             # index -> day
-            day = i + 1
+            day = i
 
             # import new data from .csv file
             df_memory = pd.read_csv(os.path.join(self.data_path, f'app_memory_percentiles.anon.d{day:02d}.csv'))
             df_duration = pd.read_csv(
-                os.path.join(self.data_path, f'function_durations_percentiles.anon.d{i + 1:02d}.csv'))
+                os.path.join(self.data_path, f'function_durations_percentiles.anon.d{day:02d}.csv'))
             df_invocation = pd.read_csv(
-                os.path.join(self.data_path, f'invocations_per_function_md.anon.d{i + 1:02d}.csv'))
+                os.path.join(self.data_path, f'invocations_per_function_md.anon.d{day:02d}.csv'))
 
             # add day column
             df_memory["day"] = day
@@ -101,7 +101,7 @@ class Dataset:
 
         self.app_invocation = pd.merge(self.app_invocation, self.app_duration[["HashFunction", "Average"]],
                                        on="HashFunction", how="inner")
-        self.app_invocation.rename(columns={"Average": "AverageDuration", "Minimum": "MinimumDuration", "Maximum": "MaximumDuration"},
+        self.app_invocation.rename(columns={"Average": "AverageDuration", "Minimum": "MinimumDuration", "Maximum": "MaximumDuration", "Average_x":"AverageDuration"},
             inplace=True)
 
         # save the three pd into csv
@@ -118,9 +118,8 @@ class Dataset:
     def get_function_invocations(self, day, time):
         # day [1..12], time [1, .., 1440]
         df = self.app_invocation[(self.app_invocation['day'] == day) &
-                                 (self.app_invocation[str(time)] != 0)].get(
-            key=["HashApp", "HashFunction", str(time), "AverageMem", "AverageDuration"])
-        # print(df)
+                                 (self.app_invocation[str(time)] != 0)].get(key=["HashApp", "HashFunction", str(time), "AverageMem", "AverageDuration"])
+        print(df)
         return df
 
     def plot_interv_between_invocations(self):
