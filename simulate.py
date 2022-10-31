@@ -16,14 +16,14 @@ if __name__ == "__main__":
     # parse arguments
     parser = argparse.ArgumentParser()
     # data import
-    parser.add_argument("--day_index", type=list, default=[2], help="Data day index, subset of [0, .. , 11], default: day0")
+    parser.add_argument("--day_index", type=list, default=[3], help="Data day index, subset of [1, .. , 12], default: day1")
     parser.add_argument("--max_time", type=int, default=60, help="Time period for simuation, maximum = 1440")
     # serverless compute node parameters
     parser.add_argument("--num_nodes", type=int, default=1, help="Number of compute nodes, default: 1")
     parser.add_argument("--node_mem_mb", type=int, default=1024 * 2048, help="Memory capacity per node, default: 2T")
     parser.add_argument("--method", type=str, default='hybrid', choices=['keep_alive', 'hybrid', 'reinfored'], help="Controller stragety for pre-warming window and keep-alive window")
-    parser.add_argument("--fast_read", type=boolean, default=True, help="read data saved in 'app_xxx' ")
-    parser.add_argument("--dir_name", type=str, default="test", help="dir to save result")
+    parser.add_argument("--fast_read", type=boolean, default=False, help="read data saved in 'app_xxx' ")
+    parser.add_argument("--dir_name", type=str, default="hybrid_40_100", help="dir to save result")
     args = parser.parse_args()
 
     assert args.max_time <= 1440
@@ -59,7 +59,7 @@ if __name__ == "__main__":
             # iterate over all invocations of the minute time bin
             invocations_num = invocations.shape[0]  # calculate each minute's invocated number``
             i_record = 0
-            for i, invocation in tqdm(invocations.iterrows(),total=invocations_num):
+            for i, invocation in tqdm(invocations.iterrows(), total=invocations_num):
                 invocation = controller.set_window(invocation, time)
                 model.schedule(i, invocation, invocations_num, method='earliest_app')
                 i_record = i
@@ -72,6 +72,8 @@ if __name__ == "__main__":
 
             model.df_mem_available[0][time] = model.compute_nodes[0].mem_available()
             model.df_mem_usage[0][time] = args.node_mem_mb - model.compute_nodes[0].mem_available()
+
+            del invocations
 
 
     model = fetch_app_wise_wasted_memory_time(model)
