@@ -5,7 +5,6 @@ import atexit
 import io
 from xmlrpc.client import Error
 import numpy as np
-from numpy._typing import _ArrayLikeStr_co
 import pandas as pd
 
 import model
@@ -74,12 +73,12 @@ class Model:
         # load app & function
         if not self.compute_nodes[0].function_exists(invocation):
             self.compute_nodes[0].add_function(invocation)
-            self.compute_nodes[0].add_app(invocation)
+            # self.compute_nodes[0].add_app(invocation)
         else:
             self.compute_nodes[0].reset_fun_duration(invocation)  # reset the function duration
             self.compute_nodes[0].update_app_property(invocation) # reset the app properties, including the pre-warm window, keep-alive window.
         # let the clock increase 1ms
-        self.compute_nodes[0].add_duration()
+        # self.compute_nodes[0].add_duration()
     
     def release_app(self, time):
         """
@@ -142,6 +141,7 @@ class Model:
         self.ColdStartCount += 1
         pos = invocation["HashApp"] == self.app_record["HashApp"]
         self.app_record.loc[pos, "ColdStartCount"] = [self.app_record.loc[pos, "ColdStartCount"][0] + 1]
+        self.compute_nodes[0].add_app(invocation)
         return
     
     def record_start(self, invocation):

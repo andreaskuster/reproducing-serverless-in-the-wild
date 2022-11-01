@@ -97,12 +97,14 @@ class ComputeNode:
     def get_finished_fun_df(self):  #TODO: here is one error. If no functions are finished within this min, we should not force any of them to be finished.
         if len(self.function_store) == 0:
             return None
-        if self.function_store[self.function_store['ExecuteDuration']>=self.function_store['AverageDuration']]['ExecuteDuration'].isnull().all():
-            tmp = self.function_store['AverageDuration'] - self.function_store['ExecuteDuration']
-            wait_min = min(tmp)
-            wait_min = min([wait_min, 1000])  # to avoid the wait_min larger than 1000 ms, which would lead to time recording error.
-            self.total_wait_min += wait_min
-            self.function_store.loc[:,'ExecuteDuration'] += wait_min
+        self.function_store.loc[:,"ExecuteDuration"] += 60000
+
+        # if self.function_store[self.function_store['ExecuteDuration']>=self.function_store['AverageDuration']]['ExecuteDuration'].isnull().all():
+        #     tmp = self.function_store['AverageDuration'] - self.function_store['ExecuteDuration']
+        #     wait_min = min(tmp)
+        #     wait_min = min([wait_min, 1000])  # to avoid the wait_min larger than 1000 ms, which would lead to time recording error.
+        #     self.total_wait_min += wait_min
+        #     self.function_store.loc[:,'ExecuteDuration'] += wait_min
         return self.function_store[self.function_store['ExecuteDuration']>=self.function_store['AverageDuration']]
 
     def get_random_app(self):

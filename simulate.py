@@ -23,7 +23,7 @@ if __name__ == "__main__":
     parser.add_argument("--node_mem_mb", type=int, default=1024 * 2048, help="Memory capacity per node, default: 2T")
     parser.add_argument("--method", type=str, default='hybrid', choices=['keep_alive', 'hybrid', 'reinfored'], help="Controller stragety for pre-warming window and keep-alive window")
     parser.add_argument("--fast_read", type=boolean, default=False, help="read data saved in 'app_xxx' ")
-    parser.add_argument("--dir_name", type=str, default="hybrid_40_100", help="dir to save result")
+    parser.add_argument("--dir_name", type=str, default="hybrid_test", help="dir to save result")
     args = parser.parse_args()
 
     assert args.max_time <= 1440
@@ -63,12 +63,12 @@ if __name__ == "__main__":
                 invocation = controller.set_window(invocation, time)
                 model.schedule(i, invocation, invocations_num, method='earliest_app')
                 i_record = i
-                # if i > 1000:
+                # if i > 3000:
                 #     break
 
             # update the duration after one minute
-            rest_ms = invocations_num - i_record
-            model.compute_nodes[0].update_minute_fun_duration(rest_ms)
+            # rest_ms = invocations_num - i_record
+            # model.compute_nodes[0].update_minute_fun_duration(rest_ms)
 
             model.df_mem_available[0][time] = model.compute_nodes[0].mem_available()
             model.df_mem_usage[0][time] = args.node_mem_mb - model.compute_nodes[0].mem_available()
