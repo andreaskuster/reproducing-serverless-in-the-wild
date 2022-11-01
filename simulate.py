@@ -24,6 +24,9 @@ if __name__ == "__main__":
     parser.add_argument("--method", type=str, default='hybrid', choices=['keep_alive', 'hybrid', 'reinfored'], help="Controller stragety for pre-warming window and keep-alive window")
     parser.add_argument("--fast_read", type=boolean, default=False, help="read data saved in 'app_xxx' ")
     parser.add_argument("--dir_name", type=str, default="hybrid_test", help="dir to save result")
+    parser.add_argument("--PW", type=float, default=5.0, help="prewarm percentage")
+    parser.add_argument("--KA", type=float, default=99.0, help="keep alive percentage")
+    parser.add_argument("--RANGE_OF_HISTOGRAM", type=int, default=240, help="RANGE_OF_HISTOGRAM")
     args = parser.parse_args()
 
     assert args.max_time <= 1440

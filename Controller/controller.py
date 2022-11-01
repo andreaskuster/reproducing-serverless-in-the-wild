@@ -4,17 +4,20 @@ import numpy as np
 from welford import Welford
 import pmdarima as pm
 
-RANGE_OF_HISTOGRAM = 240
+
 
 class Controller:
 
-    def __init__(self, method, keep_alive_period=10, CV_threshold=2, OOB_threshold=3, history_saved=10):
+    def __init__(self, method, keep_alive_period=10, CV_threshold=2, OOB_threshold=3, history_saved=10, RANGE_OF_HISTOGRAM=240, PW=5.0, KA=99.0):
         self.method = method
 
         self.keep_alive_period = keep_alive_period
         self.CV_threshold = CV_threshold
         self.OOB_threshold = OOB_threshold
         self.history_saved = history_saved
+        self.PW = PW
+        self.KA = KA
+        self.RANGE_OF_HISTOGRAM = RANGE_OF_HISTOGRAM
 
         # idx is to record the index where we store the distribution and the arrival history for the app. 
         self.histogram = pd.DataFrame(columns=["HashApp", "LastUsed", "OOB_times", "idx"])
@@ -72,12 +75,12 @@ class Controller:
             })
             self.histogram = pd.concat([self.histogram, df], axis=0)
             self.ArrivalHistory.append([time])
-            self.distribution.append(np.zeros(RANGE_OF_HISTOGRAM))
+            self.distribution.append(np.zeros(self.RANGE_OF_HISTOGRAM))
         else:
             pos = invocation["HashApp"] == self.histogram["HashApp"]
             idle_time = time - self.histogram.loc[pos, "LastUsed"][0]
             idx = self.histogram.loc[pos, "idx"][0]
-            if idle_time < RANGE_OF_HISTOGRAM:
+            if idle_time < self.RANGE_OF_HISTOGRAM:
                 self.distribution[idx][idle_time] += 1
             else:
                 self.histogram.loc[pos, "OOB_times"] += 1
