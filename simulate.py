@@ -17,13 +17,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # data import
     parser.add_argument("--day_index", type=list, default=[3], help="Data day index, subset of [1, .. , 12], default: day1")
-    parser.add_argument("--max_time", type=int, default=60, help="Time period for simuation, maximum = 1440")
+    parser.add_argument("--max_time", type=int, default=200, help="Time period for simuation, maximum = 1440")
     # serverless compute node parameters
     parser.add_argument("--num_nodes", type=int, default=1, help="Number of compute nodes, default: 1")
     parser.add_argument("--node_mem_mb", type=int, default=1024 * 2048, help="Memory capacity per node, default: 2T")
     parser.add_argument("--method", type=str, default='hybrid', choices=['keep_alive', 'hybrid', 'reinfored'], help="Controller stragety for pre-warming window and keep-alive window")
     parser.add_argument("--fast_read", type=boolean, default=False, help="read data saved in 'app_xxx' ")
     parser.add_argument("--dir_name", type=str, default="hybrid_test", help="dir to save result")
+    parser.add_argument("--RANGE_OF_HISTOGRAM", type=int, default=240, help="the histogram window range")
+    parser.add_argument("--PW", type=float, default=5.0, help="prewarm percentage")
+    parser.add_argument("--KA", type=float, default=99.0, help="keep alive percentage")
+    parser.add_argument("--keep_alive_period", type=int, default=20, help="keep alive period")
+    parser.add_argument("--CV", type=int, default=2, help="keep alive period")
     args = parser.parse_args()
 
     assert args.max_time <= 1440
@@ -44,7 +49,8 @@ if __name__ == "__main__":
     model = Model()
     model.add_compute_nodes(num_nodes=args.num_nodes, node_mem_mb=args.node_mem_mb)
 
-    controller = Controller(args.method)
+    PW, KA = args.PW, args.KA
+    controller = Controller(args.method, keep_alive_period=args.keep_alive_period, RANGE_OF_HISTOGRAM=args.RANGE_OF_HISTOGRAM, PW=PW, KA=KA,CV_threshold=args.CV)
 
     # run model
     for day in args.day_index:  # 1..12 TODO: extend to full range
@@ -63,6 +69,7 @@ if __name__ == "__main__":
                 invocation = controller.set_window(invocation, time)
                 model.schedule(i, invocation, invocations_num, method='earliest_app')
                 i_record = i
+                # for debug
                 # if i > 3000:
                 #     break
 

@@ -1,7 +1,9 @@
 #!/bin/bash
 
-python simulate.py --max_time 60 --dir_name hybrid_1h_result --method hybrid
-
-# python simulate.py --max_time 120 --dir_name keep_alive_2h_result --method keep_alive
-
-# python simulate.py --max_time 120 --dir_name hybrid_2h_result --method hybrid
+for p in 1 5 10
+do
+    for q in 95 99
+    do
+        python simulate.py --PW ${p} --KA ${q} --method hybrid --dir_name "final/hybrid_${p}_${q}_ka20" --max_time 200 --RANGE_OF_HISTOGRAM 240 --keep_alive_period 20
+    done
+done

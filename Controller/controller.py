@@ -4,17 +4,21 @@ import numpy as np
 from welford import Welford
 import pmdarima as pm
 
-RANGE_OF_HISTOGRAM = 240
+
 
 class Controller:
 
-    def __init__(self, method, keep_alive_period=10, CV_threshold=2, OOB_threshold=3, history_saved=10):
+    def __init__(self, method, keep_alive_period=3, CV_threshold=2, OOB_threshold=3, history_saved=10, RANGE_OF_HISTOGRAM = 240, PW = 5.0, KA = 99.0):
         self.method = method
 
         self.keep_alive_period = keep_alive_period
         self.CV_threshold = CV_threshold
         self.OOB_threshold = OOB_threshold
         self.history_saved = history_saved
+        self.RANGE_OF_HISTOGRAM = RANGE_OF_HISTOGRAM
+        self.PW = PW
+        self.KA = KA
+        print(self.PW, self.KA, self.RANGE_OF_HISTOGRAM, self.keep_alive_period, self.CV_threshold)
 
         # idx is to record the index where we store the distribution and the arrival history for the app. 
         self.histogram = pd.DataFrame(columns=["HashApp", "LastUsed", "OOB_times", "idx"])
@@ -55,12 +59,19 @@ class Controller:
     def set_window_from_distribution(self, invocation):
         pos = invocation["HashApp"] == self.histogram["HashApp"]
         distribution = self.distribution[self.histogram.loc[pos, "idx"][0]]
-        # print(distribution)
-        perc = np.percentile(distribution, np.array([40.0, 100.0]))
-        pre_warm_window, keep_alive_window = np.int64(perc[0]) * 0.9, max(np.ceil(perc[1]), 1) * 1.1
-        # pre_warm_window = 10
-        # print(int(pre_warm_window), int(keep_alive_window))
-        return int(pre_warm_window), np.ceil(keep_alive_window)
+        cal = distribution[distribution > 0]
+        perc = np.percentile(cal, np.array([self.PW, self.KA]))   # find the index (interval)
+        for i in range(len(distribution)):
+            if np.sum(distribution[:i+1]) >= perc[0]:
+                low = np.max([0, i-1])
+                break
+        for i in range(len(distribution)):
+            if np.sum(distribution[:i+1]) >= perc[1]:
+                high = i - low
+                break
+        pre_warm_window, keep_alive_window = np.int64(low) * 0.9, max(np.ceil(high), 1) * 1.1
+        # print(int(pre_warm_window), np.ceil(keep_alive_window))
+        return int(pre_warm_window), np.ceil(keep_alive_window)    
 
     def update_distribution(self, invocation, time):
         if not self.histogram_exist(invocation):
@@ -72,12 +83,12 @@ class Controller:
             })
             self.histogram = pd.concat([self.histogram, df], axis=0)
             self.ArrivalHistory.append([time])
-            self.distribution.append(np.zeros(RANGE_OF_HISTOGRAM))
+            self.distribution.append(np.zeros(self.RANGE_OF_HISTOGRAM))
         else:
             pos = invocation["HashApp"] == self.histogram["HashApp"]
             idle_time = time - self.histogram.loc[pos, "LastUsed"][0]
             idx = self.histogram.loc[pos, "idx"][0]
-            if idle_time < RANGE_OF_HISTOGRAM:
+            if idle_time < self.RANGE_OF_HISTOGRAM:
                 self.distribution[idx][idle_time] += 1
             else:
                 self.histogram.loc[pos, "OOB_times"] += 1
