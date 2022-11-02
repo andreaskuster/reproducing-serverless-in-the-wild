@@ -15,10 +15,9 @@ class Controller:
         self.CV_threshold = CV_threshold
         self.OOB_threshold = OOB_threshold
         self.history_saved = history_saved
-        self.RANGE_OF_HISTOGRAM = RANGE_OF_HISTOGRAM
         self.PW = PW
         self.KA = KA
-        print(self.PW, self.KA, self.RANGE_OF_HISTOGRAM, self.keep_alive_period, self.CV_threshold)
+        self.RANGE_OF_HISTOGRAM = RANGE_OF_HISTOGRAM
 
         # idx is to record the index where we store the distribution and the arrival history for the app. 
         self.histogram = pd.DataFrame(columns=["HashApp", "LastUsed", "OOB_times", "idx"])
