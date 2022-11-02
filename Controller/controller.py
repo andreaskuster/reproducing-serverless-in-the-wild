@@ -4,17 +4,17 @@ import numpy as np
 from welford import Welford
 import pmdarima as pm
 
-RANGE_OF_HISTOGRAM = 240
 
 class Controller:
 
-    def __init__(self, method, keep_alive_period=10, CV_threshold=2, OOB_threshold=3, history_saved=10):
+    def __init__(self, method, keep_alive_period=10, CV_threshold=2, OOB_threshold=3, history_saved=10, range_of_hist=240):
         self.method = method
 
         self.keep_alive_period = keep_alive_period
         self.CV_threshold = CV_threshold
         self.OOB_threshold = OOB_threshold
         self.history_saved = history_saved
+        self.range_of_hist = range_of_hist
 
         # idx is to record the index where we store the distribution and the arrival history for the app. 
         self.histogram = pd.DataFrame(columns=["HashApp", "LastUsed", "OOB_times", "idx"])
@@ -57,7 +57,7 @@ class Controller:
         distribution = self.distribution[self.histogram.loc[pos, "idx"][0]]
         perc = np.percentile(distribution, np.array([5.0, 99.0]))
         pre_warm_window, keep_alive_window = np.int64(perc[0]) * 0.9, max(np.ceil(perc[1]), 1) * 1.1
-        return int(pre_warm_window), int(keep_alive_window)
+        return int(pre_warm_window), np.ceil(keep_alive_window)
 
     def update_distribution(self, invocation, time):
         if not self.histogram_exist(invocation):
@@ -69,12 +69,12 @@ class Controller:
             })
             self.histogram = pd.concat([self.histogram, df], axis=0)
             self.ArrivalHistory.append([time])
-            self.distribution.append(np.zeros(RANGE_OF_HISTOGRAM))
+            self.distribution.append(np.zeros(self.range_of_hist))
         else:
             pos = invocation["HashApp"] == self.histogram["HashApp"]
             idle_time = time - self.histogram.loc[pos, "LastUsed"][0]
             idx = self.histogram.loc[pos, "idx"][0]
-            if idle_time < RANGE_OF_HISTOGRAM:
+            if idle_time < self.range_of_hist:
                 self.distribution[idx][idle_time] += 1
             else:
                 self.histogram.loc[pos, "OOB_times"] += 1

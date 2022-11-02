@@ -68,18 +68,20 @@ class Model:
                     ## if we remove here, we should also modify related information
                 self.compute_nodes[0].remove_app(remove_store)
                 print("use up the memory")
-            # record the app-wise cold start
-            self.record_cold_start(invocation)
+            # record the app-wise cold start and load the app
+            self.record_cold_start(invocation)  
 
-        # load app & function
+        if invocation["HashApp"] == '8bb849e5ea2a8ed4c2a5e1883afa33c5fa3c2df77d17d457b317d66d6afcc329':
+            print('now')
+        # load function
         if not self.compute_nodes[0].function_exists(invocation):
             self.compute_nodes[0].add_function(invocation)
-            self.compute_nodes[0].add_app(invocation)
+            # self.compute_nodes[0].add_app(invocation)  # TODO
         else:
             self.compute_nodes[0].reset_fun_duration(invocation)  # reset the function duration
             self.compute_nodes[0].update_app_property(invocation) # reset the app properties, including the pre-warm window, keep-alive window.
-        # let the clock increase 1ms
-        self.compute_nodes[0].add_duration()
+        # let the clock increase 1ms # TODO
+        # self.compute_nodes[0].add_duration()
     
     def release_app(self, time):
         """
@@ -95,6 +97,8 @@ class Model:
         
         for i in np.arange(len(finished_app)):
             app = finished_app.iloc[i].to_frame().T
+            if app.loc[0, "HashApp"]== '8bb849e5ea2a8ed4c2a5e1883afa33c5fa3c2df77d17d457b317d66d6afcc329':
+                print('now')
             if app['pre_warm_window'][0] > 0:
                 app_to_kill = pd.concat([app_to_kill, app], axis=0)
                 app['release_time'] = time
@@ -124,13 +128,16 @@ class Model:
                 app_clean = app.drop('release_time')
                 app_clean['arrival_time'] = time
                 app_clean['pre_warm_window'] = 0
+                if app["HashApp"] == '8bb849e5ea2a8ed4c2a5e1883afa33c5fa3c2df77d17d457b317d66d6afcc329':
+                    print('now')
+                
                 
                 # Here I add one psudo-invocation to the function_store. It has already been finished. 
                 # It leads to memeory increase and when other invocation call this app, they will have a warm start.
                 # The model would kill the app after its keep alive window passes.
                 # Besides, the psudo-invocation would not lead to interference to the other part of the code.
                 # We could have improve the code to make the logic more clear, but the burden is large and leads to conflicts across code.
-                self.compute_nodes[0].add_function(app_clean) 
+                self.compute_nodes[0].add_function(app_clean)
                 self.compute_nodes[0].add_app(app_clean)
 
                 app_to_reload_new = app_to_reload_new[app_to_reload_new["HashApp"] != app["HashApp"]]
@@ -138,10 +145,11 @@ class Model:
         self.app_to_reload = app_to_reload_new
         return
     
-    def record_cold_start(self, invocation):
+    def record_cold_start(self, invocation):  # TODO:
         self.ColdStartCount += 1
         pos = invocation["HashApp"] == self.app_record["HashApp"]
         self.app_record.loc[pos, "ColdStartCount"] = [self.app_record.loc[pos, "ColdStartCount"][0] + 1]
+        self.compute_nodes[0].add_app(invocation)
         return
     
     def record_start(self, invocation):

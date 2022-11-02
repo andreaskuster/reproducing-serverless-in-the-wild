@@ -8,6 +8,7 @@ from xmlrpc.client import boolean
 from tqdm import tqdm
 from Controller.controller import Controller
 import numpy as np
+import time as t
 
 from model import Dataset, Model, tools
 from utility import *
@@ -16,14 +17,17 @@ if __name__ == "__main__":
     # parse arguments
     parser = argparse.ArgumentParser()
     # data import
-    parser.add_argument("--day_index", type=list, default=[2], help="Data day index, subset of [0, .. , 11], default: day0")
-    parser.add_argument("--max_time", type=int, default=60, help="Time period for simuation, maximum = 1440")
+    parser.add_argument("--day_index", type=list, default=[3], help="Data day index, subset of [0, .. , 11], default: day0")
+    parser.add_argument("--max_time", type=int, default=100, help="Time period for simuation, maximum = 1440")
     # serverless compute node parameters
     parser.add_argument("--num_nodes", type=int, default=1, help="Number of compute nodes, default: 1")
     parser.add_argument("--node_mem_mb", type=int, default=1024 * 2048, help="Memory capacity per node, default: 2T")
-    parser.add_argument("--method", type=str, default='hybrid', choices=['keep_alive', 'hybrid', 'reinfored'], help="Controller stragety for pre-warming window and keep-alive window")
+    parser.add_argument("--method", type=str, default='keep_alive', choices=['keep_alive', 'hybrid', 'reinfored'], help="Controller stragety for pre-warming window and keep-alive window")
     parser.add_argument("--fast_read", type=boolean, default=True, help="read data saved in 'app_xxx' ")
     parser.add_argument("--dir_name", type=str, default="test", help="dir to save result")
+    parser.add_argument("-p", type=int, default=10, help="period for keep alive window")
+    parser.add_argument("-CV", type=float, default=2, help="CV threshold")
+    parser.add_argument("-range", type=int, default=240, help="The histogram range")
     args = parser.parse_args()
 
     assert args.max_time <= 1440
@@ -44,13 +48,14 @@ if __name__ == "__main__":
     model = Model()
     model.add_compute_nodes(num_nodes=args.num_nodes, node_mem_mb=args.node_mem_mb)
 
-    controller = Controller(args.method)
+    controller = Controller(args.method, keep_alive_period=args.p, CV_threshold=args.CV, range_of_hist=args.range)
 
     # run model
+    start = t.time()
     for day in args.day_index:  # 1..12 TODO: extend to full range
         for time in range(1, args.max_time + 1):  # 1..1440 TODO: extend to full range
             model.release_app(time)  # delete pre-warm app
-            model.load_app(time)    # load keep-alive app
+            model.load_app(time)  # load keep-alive app
             
             model = fetch_app_wise_wasted_memory_time(model)  # data analysis
 
@@ -59,23 +64,30 @@ if __name__ == "__main__":
             # iterate over all invocations of the minute time bin
             invocations_num = invocations.shape[0]  # calculate each minute's invocated number``
             i_record = 0
+            num_record = 0
             for i, invocation in tqdm(invocations.iterrows(),total=invocations_num):
                 invocation = controller.set_window(invocation, time)
                 model.schedule(i, invocation, invocations_num, method='earliest_app')
                 i_record = i
-                # if i > 1000:
-                #     break
+                num_record += 1
+                if i > 1000:
+                    break
+            pass
 
-            # update the duration after one minute
-            rest_ms = invocations_num - i_record
-            model.compute_nodes[0].update_minute_fun_duration(rest_ms)
+            # update the duration after one minute  # TODO
+            # rest_ms = invocations_num - i_record
+            # model.compute_nodes[0].update_minute_fun_duration(rest_ms)
 
             model.df_mem_available[0][time] = model.compute_nodes[0].mem_available()
             model.df_mem_usage[0][time] = args.node_mem_mb - model.compute_nodes[0].mem_available()
 
 
+    end=t.time()
     model = fetch_app_wise_wasted_memory_time(model)
     record_app_wise_inforamtion(model, args.dir_result)
+    
+    print('Running time: %.2f Seconds'%(end-start))
+    
 
     # TODO: analysis
     tools.analysis_mem(model.df_mem_available,type='available')
