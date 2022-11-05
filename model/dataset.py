@@ -34,12 +34,14 @@ class Dataset:
         # analysis parameters
         self.savefig = True
 
-    def data_import(self, day_index=range(12)):
+    def data_import(self, day_index=range(1, 13)):
         if not os.path.exists(os.path.join(self.path, self.file_name)):
             self.fetch_data()
         if not os.path.exists(os.path.join(self.path, self.data_path)):
             self.extract_data()
         self.parse_data(day_index)
+        # for draw beautiful plot, sample the df
+        self.sample_invocation(self.app_invocation, invocation_nums=500)
 
     def fetch_data(self):
         print(f"Downloading {self.file_name}")
@@ -55,20 +57,20 @@ class Dataset:
             pass
         file.close()
 
-    def parse_data(self, day_index=range(12)):
+    def parse_data(self, day_index=range(1, 13)):
         # TODO: we currently load ~2GB of data into memory, resulting n a memory consumption of ~4GB, which is
         #  suboptimal. Loading dataset for single days reduces the memory consumption to ~1.2GB
-        print(f'Parsing {self.file_name}')
+        print(f'Parsing {self.file_name}, {day_index}')
         for i in day_index:  # we omit 13, 14 as we have no data for app_memory
             # index -> day
-            day = i + 1
+            day = i
 
             # import new data from .csv file
             df_memory = pd.read_csv(os.path.join(self.data_path, f'app_memory_percentiles.anon.d{day:02d}.csv'))
             df_duration = pd.read_csv(
-                os.path.join(self.data_path, f'function_durations_percentiles.anon.d{i + 1:02d}.csv'))
+                os.path.join(self.data_path, f'function_durations_percentiles.anon.d{day:02d}.csv'))
             df_invocation = pd.read_csv(
-                os.path.join(self.data_path, f'invocations_per_function_md.anon.d{i + 1:02d}.csv'))
+                os.path.join(self.data_path, f'invocations_per_function_md.anon.d{day:02d}.csv'))
 
             # add day column
             df_memory["day"] = day
@@ -99,10 +101,7 @@ class Dataset:
         self.app_invocation.rename(columns={"AverageAllocatedMb": "AverageMem"}, inplace=True)
         self.app_invocation = pd.merge(self.app_invocation, self.app_duration, on="HashFunction", how="inner")
 
-        self.app_invocation = pd.merge(self.app_invocation, self.app_duration[["HashFunction", "Average"]],
-                                       on="HashFunction", how="inner")
-        self.app_invocation.rename(columns={"Average": "AverageDuration", "Minimum": "MinimumDuration", "Maximum": "MaximumDuration"},
-            inplace=True)
+        self.app_invocation.rename(columns={"Average": "AverageDuration", "Minimum": "MinimumDuration", "Maximum": "MaximumDuration"}, inplace=True)
 
         # save the three pd into csv
         self.app_memory.to_csv(os.path.join(self.data_path,'app_memory.csv'))
@@ -115,11 +114,14 @@ class Dataset:
         self.app_invocation = pd.read_csv(os.path.join(self.data_path,'app_invocation.csv'))
         return
 
+    def sample_invocation(self, df, invocation_nums=200):
+        df['invocation_sum'] = df[[str(i) for i in range(1,1440)]].sum(axis=1)
+        self.app_invocation = df[df['invocation_sum']<=invocation_nums]    # for day3: 45412-14736 (<200 times)
+
     def get_function_invocations(self, day, time):
         # day [1..12], time [1, .., 1440]
         df = self.app_invocation[(self.app_invocation['day'] == day) &
-                                 (self.app_invocation[str(time)] != 0)].get(
-            key=["HashApp", "HashFunction", str(time), "AverageMem", "AverageDuration"])
+                                 (self.app_invocation[str(time)] != 0)].get(key=["HashApp", "HashFunction", str(time), "AverageMem", "AverageDuration"])
         # print(df)
         return df
 
@@ -303,7 +305,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     dataset = Dataset()
-    dataset.data_import(day_index=range(12))  # only load day zero (possible values: subset of [0, .., 11])
+    dataset.data_import(day_index=[3])  # only load day zero (possible values: subset of [0, .., 11])
 
     """"
     Produce nice plots about input data (including var/mean/..):

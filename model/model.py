@@ -5,7 +5,6 @@ import atexit
 import io
 from xmlrpc.client import Error
 import numpy as np
-from numpy._typing import _ArrayLikeStr_co
 import pandas as pd
 
 import model
@@ -23,7 +22,7 @@ class Model:
         self.ColdStartCount = 0  # recore total cold start number
         self.InvocationCount = 0  # record total invocation number
         # record app-wise cold start, invocation and wasted memory time
-        self.app_record = pd.DataFrame(columns=["HashApp", "ColdStartCount", "InvocationCount", "WasteMemoryTime"])  
+        self.app_record = pd.DataFrame(columns=["HashApp", "ColdStartCount", "InvocationCount", "WasteMemoryTime"])
         
 
     def add_compute_nodes(self, num_nodes=1, node_mem_mb=8192):
@@ -74,11 +73,12 @@ class Model:
         # load app & function
         if not self.compute_nodes[0].function_exists(invocation):
             self.compute_nodes[0].add_function(invocation)
+            # self.compute_nodes[0].add_app(invocation)
         else:
             self.compute_nodes[0].reset_fun_duration(invocation)  # reset the function duration
             self.compute_nodes[0].update_app_property(invocation) # reset the app properties, including the pre-warm window, keep-alive window.
         # let the clock increase 1ms
-        self.compute_nodes[0].add_duration()
+        # self.compute_nodes[0].add_duration()
     
     def release_app(self, time):
         """
@@ -96,17 +96,18 @@ class Model:
             app = finished_app.iloc[i].to_frame().T
             if app['pre_warm_window'][0] > 0:
                 app_to_kill = pd.concat([app_to_kill, app], axis=0)
-                app['release_time'][0] = time
-                app_to_reload = pd.concat([app_to_reload, app], axis=0)
-            elif app['pre_warm_window'][0] == 0 and time >= app['ArrivalTime'][0] + app['keep_alive_window'][0]:
+                app['release_time'] = time
+                self.app_to_reload = pd.concat([self.app_to_reload, app], axis=0)
+            elif app['pre_warm_window'][0] == 0 and time > app['ArrivalTime'][0] + app['keep_alive_window'][0]:
                 app_to_kill = pd.concat([app_to_kill, app], axis=0)
-            elif app['pre_warm_window'][0] == 0 and time < app['ArrivalTime'][0] + app['keep_alive_window'][0]:
+            elif app['pre_warm_window'][0] == 0 and time <= app['ArrivalTime'][0] + app['keep_alive_window'][0]:
                 pass
             else:
                 raise ValueError
         for i in np.arange(len(app_to_kill)):
             app = app_to_kill.iloc[i]
             self.compute_nodes[0].remove_app(app)
+        
         return
     
     def load_app(self, time):
@@ -115,19 +116,32 @@ class Model:
         reset the ArrivalTime
         set the pre_warm_time to 0, it means when the app is finished, it would be released directly, given no new related invocation changes its property.
         """ 
+        app_to_reload_new = self.app_to_reload
         for i in np.arange(len(self.app_to_reload)):
             app = self.app_to_reload.iloc[i]
-            if app['release_time'] + app['pre_warm_window'] >= time:
-                app_clean = app.drop('release_time', axis=1)
-                app_clean['ArrivalTime'] = time
+            if int(app['release_time'] + app['pre_warm_window']) <= time:
+                app_clean = app.drop('release_time')
+                app_clean['arrival_time'] = time
                 app_clean['pre_warm_window'] = 0
-                self.compute_nodes[0].add_function(app_clean)
+                
+                # Here I add one psudo-invocation to the function_store. It has already been finished. 
+                # It leads to memeory increase and when other invocation call this app, they will have a warm start.
+                # The model would kill the app after its keep alive window passes.
+                # Besides, the psudo-invocation would not lead to interference to the other part of the code.
+                # We could have improve the code to make the logic more clear, but the burden is large and leads to conflicts across code.
+                self.compute_nodes[0].add_function(app_clean) 
+                self.compute_nodes[0].add_app(app_clean)
+
+                app_to_reload_new = app_to_reload_new[app_to_reload_new["HashApp"] != app["HashApp"]]
+
+        self.app_to_reload = app_to_reload_new
         return
     
     def record_cold_start(self, invocation):
         self.ColdStartCount += 1
         pos = invocation["HashApp"] == self.app_record["HashApp"]
         self.app_record.loc[pos, "ColdStartCount"] = [self.app_record.loc[pos, "ColdStartCount"][0] + 1]
+        self.compute_nodes[0].add_app(invocation)
         return
     
     def record_start(self, invocation):
